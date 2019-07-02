@@ -15,14 +15,10 @@
 下一阶段的目标是引入 tesseract-ocr
 
 ## 如何使用
-### 环境
+### 系统环境
 Windows 系统（Linux, macOS 未经测试, 但是理论上没有问题）
 
 Python 3.x
-
-OpenCV, Pillow, skimage:
-
-    pip install opencv-python Pillow scikit-image
 
 ### 获取代码
 方法一：
@@ -30,6 +26,20 @@ OpenCV, Pillow, skimage:
     git clone https://github.com/drsanwujiang/video-timeline-and-subtitle-extract.git
 
 方法二：右上角 - clone or download - download zip
+
+### 安装模块
+在命令行执行
+
+    pip install opencv-python Pillow scikit-image scipy requests
+
+或在命令行中进入脚本所在目录，运行
+    
+    pip install -r requirements.txt
+    
+将会自动安装所依赖的模块，还可以在这里下载包括完整模块可直接运行的版本：
+
+https://pan.drsanwujiang.com/index.php/s/EGFsELTokGssjHK
+
 
 ### 申请京东OCR
 https://neuhub.jd.com/ai/api/ocr/general
