@@ -5,55 +5,47 @@ import configparser
 
 
 class Config:
-    Maps = {}
-    Types = [".mp4", ".avi", ".mkv", ".wmv", ".mov", ".flv"]
-    Timeline = None
+    def __init__(self):
+        self.Maps = {}
+        self.set_default()
 
-    @staticmethod
-    def set_default():
+    def set_default(self):
         config = configparser.ConfigParser()
         config.read("config.ini", encoding="utf-8")
         config_app_info = config["app_info"]
         config_params = config["params"]
         config_paths = config["paths"]
 
-        Config.Maps["APP_KEY"] = config_app_info["APP_KEY"]
-        Config.Maps["SECRET_KEY"] = config_app_info["SECRET_KEY"]
-        Config.Maps["jpg_quality"] = config_params["jpg_quality"]
-        Config.Maps["probability"] = config_params["probability"]
-        Config.Maps["similarity"] = config_params["similarity"]
-        Config.Maps["y_from"] = config_params["y_from"]
-        Config.Maps["y_to"] = config_params["y_to"]
-        Config.Maps["binary_threshold"] = config_params["binary_threshold"]
-        Config.Maps["current_dir"] = sys.path[0]
-        Config.Maps["video_dir"] = Config.Maps["current_dir"] + config_paths["video_dir"]
-        Config.Maps["binary_tmp"] = Config.Maps["current_dir"] + config_paths["binary_tmp"]
-        Config.Maps["output_dir"] = Config.Maps["current_dir"] + config_paths["output_dir"]
+        self.Maps["jd_app_key"] = config_app_info["jd_app_key"]
+        self.Maps["jd_secret_key"] = config_app_info["jd_secret_key"]
 
-    @staticmethod
-    def set_video_dir(_dir):
-        Config.Maps["video_dir"] = _dir + "/"  # 指定视频源文件目录
+        self.Maps["jpg_quality"] = int(config_params["jpg_quality"])
+        self.Maps["probability"] = float(config_params["probability"])
+        self.Maps["binary_threshold"] = int(config_params["binary_threshold"])
 
-    @staticmethod
-    def set_video_name(_name):
-        Config.Maps["video_name"] = _name[:_name.rfind(".")]
-        Config.Maps["video_suffix"] = _name[_name.rfind("."):]
-        Config.Maps["video_path"] = Config.Maps["video_dir"] + _name
-        Config.Maps["image_dir"] = "%s%s/" % (Config.Maps["binary_tmp"], Config.Maps["video_name"])
+        self.Maps["current_dir"] = sys.path[0]
+        self.Maps["video_dir"] = self.Maps["current_dir"] + config_paths["video_dir"]
+        self.Maps["binary_tmp"] = self.Maps["current_dir"] + config_paths["binary_tmp"]
+        self.Maps["output_dir"] = self.Maps["current_dir"] + config_paths["output_dir"]
 
-    @staticmethod
-    def set_video_info(_w, _h, _fc):
-        Config.Maps["video_width"] = _w
-        Config.Maps["video_height"] = _h
-        Config.Maps["frame_count"] = _fc
+    def set_video_dir(self, _dir):
+        self.Maps["video_dir"] = _dir + "/"  # 指定视频源文件目录
 
-    @staticmethod
-    def set_params(_yf, _yt, _bth):
-        Config.Maps["y_from"] = _yf
-        Config.Maps["y_to"] = _yt
-        Config.Maps["binary_threshold"] = _bth
+    def set_video_name(self, _name):
+        self.Maps["video_name"] = _name[:_name.rfind(".")]
+        self.Maps["video_suffix"] = _name[_name.rfind("."):]
+        self.Maps["video_path"] = self.Maps["video_dir"] + _name
 
-    @staticmethod
-    def get_value(key):
-        return Config.Maps[key]
+    def set_video_info(self, _w, _h, _fc, _fps):
+        self.Maps["video_width"] = _w
+        self.Maps["video_height"] = _h
+        self.Maps["frame_count"] = _fc
+        self.Maps["fps"] = _fps
 
+    def set_params(self, _yf, _yt, _bth):
+        self.Maps["y_from"] = _yf
+        self.Maps["y_to"] = _yt
+        self.Maps["binary_threshold"] = _bth
+
+    def get_value(self, key):
+        return self.Maps[key]

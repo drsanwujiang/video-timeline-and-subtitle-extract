@@ -1,30 +1,25 @@
 # -*- coding: UTF-8 -*-
 
-import os
 import cv2
 import copy
-from config import Config
+import os
+from skimage.measure import compare_ssim
+from gl import Global
 
 
-def get_timeline(gui):
-    video_path = Config.get_value("video_path")
-    image_dir = Config.get_value("image_dir")
-    jpg_quality = int(Config.get_value("jpg_quality"))
-    y_from = Config.get_value("y_from")
-    y_to = Config.get_value("y_to")
-    frame_count = Config.get_value("frame_count")
-    binary_threshold = Config.get_value("binary_threshold")
-    similarity_limit = float(Config.get_value("similarity"))
-
-    if not(os.path.exists(image_dir)):
-        os.makedirs(image_dir)
-
-    if not(os.path.exists(Config.get_value("output_dir"))):
-        os.makedirs(Config.get_value("output_dir"))
+def get_timeline():
+    video_path = Global.config.get_value("video_path")
+    tmp_dir = Global.config.get_value("binary_tmp")
+    jpg_quality = Global.config.get_value("jpg_quality")
+    y_from = Global.config.get_value("y_from")
+    y_to = Global.config.get_value("y_to")
+    frame_count = Global.config.get_value("frame_count")
+    binary_threshold = Global.config.get_value("binary_threshold")
 
     cv = cv2.VideoCapture(video_path)  # 读入视频文件
     current_frame = 0
-    current_subtitle = [-1, -1, ""]
+    similarity = [0, 0, 0]
+    current_subtitle = [-1, -1, None, None]
     subtitle_list = []
 
     if cv.isOpened():  # 判断是否正常打开
@@ -35,73 +30,91 @@ def get_timeline(gui):
         previous_binary = binary
     else:
         cv.release()
-        gui.error_message.set("视频打开失败！")
-        gui.b_begin.configure(state="normal")  # 启用按钮
+        Global.gui.update_errmsg_tl("视频打开失败！")
+        Global.gui.b_begin_tl.configure(state="normal")
         return False
 
     while _r:   # 循环读取视频帧
         cropped = frame[y_from:y_to, :]  # 截取指定区域
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  # 灰度化
         _, binary = cv2.threshold(gray, binary_threshold, 255, cv2.THRESH_BINARY_INV)  # 反转二值化
-        similarity = img_similarity(previous_binary, binary)  # 比较相似度
 
-        if similarity != -1 and current_subtitle[0] == -1:  # 当前字幕无起点
-            current_subtitle[0] = current_frame - 1  # 起点设为前一帧
-            current_subtitle[1] = current_frame  # 终点设为本帧
-            cv2.imencode(".jpg", previous_binary, [int(cv2.IMWRITE_JPEG_QUALITY), jpg_quality])[1].\
-                tofile(image_dir + str(current_frame - 1).zfill(6) + ".jpg")
-        elif similarity != -1 and similarity > similarity_limit:  # 字幕相同但有起点
-            current_subtitle[1] = current_frame  # 终点设为本帧
-        elif similarity != -1:  # 字幕不同
-            subtitle_list.append(copy.copy(current_subtitle))  # 增加字幕——当前对象的拷贝
-            current_subtitle[0] = current_frame  # 起点设为本帧
-            cv2.imencode(".jpg", binary, [int(cv2.IMWRITE_JPEG_QUALITY), jpg_quality])[1]. \
-                tofile(image_dir + str(current_frame).zfill(6) + ".jpg")
-        elif current_subtitle[0] != -1:  # 识别失败且有起点
-            subtitle_list.append(copy.copy(current_subtitle))  # 增加字幕——当前对象的拷贝
-            current_subtitle[0] = -1  # 将当前字幕起点设为-1
+        similarity[0] = similarity[1]
+        similarity[1] = similarity[2]
+        similarity[2] = similar_to_previous(previous_binary, binary)
 
-        gui.str_current_tl.set("%d of %d" % (current_frame + 1, frame_count))  # 更新GUI
+        # 如果大于第1帧，且前一帧非空白图片
+        if current_frame > 1 and calculate_white(previous_binary) < 0.99:
+            # 如果综合判断为是不同帧
+            if similarity[1] > 10 * similarity[0] and similarity[1] > 10 * similarity[2]:
+                # 如果不是第一次添加时间轴
+                if current_subtitle[0] != -1:
+                    subtitle_list.append(copy.deepcopy(current_subtitle))  # 添加时间轴
+
+                current_subtitle[0] = current_frame - 1  # 将当前时间轴起点设为前一帧
+                current_subtitle[2] = previous_binary  # 前一帧
+                cv2.imencode(".jpg", previous_binary, [int(cv2.IMWRITE_JPEG_QUALITY), jpg_quality])[1]. \
+                    tofile(tmp_dir + str(current_frame - 1).zfill(6) + ".jpg")
+            else:
+                current_subtitle[1] = current_frame - 1  # 将当前时间轴终点设为前一帧
+
+        Global.gui.update_current_tl("初步分析时间轴: %d of %d" % (current_frame, frame_count))  # 更新GUI
+        Global.gui.update_process_tl("%d %%" % int((current_frame + 1) * 90 / frame_count))
 
         cv2.waitKey(1)
         previous_binary = binary
         _r, frame = cv.read()  # 下一帧
         current_frame += 1
 
+    subtitle_list.append(copy.deepcopy(current_subtitle))  # 添加时间轴
     cv.release()
-    Config.Timeline = subtitle_list
+
+    _current = 0
+    while True:
+        _ssim = compare_ssim(subtitle_list[_current][2], subtitle_list[_current + 1][2])
+        if _ssim > 0.9 and subtitle_list[_current + 1][0] - subtitle_list[_current][1] <= 5:
+            subtitle_list[_current][1] = subtitle_list[_current + 1][1]
+            os.remove(tmp_dir + str(subtitle_list[_current + 1][0]).zfill(6) + ".jpg")
+            del(subtitle_list[_current + 1])
+        else:
+            _current += 1
+
+        Global.gui.update_current_tl("SSIM对比去重: %d" % subtitle_list[_current][0])  # 更新GUI
+        Global.gui.update_process_tl("%d %%" % (int((_current + 1) * 10 / len(subtitle_list)) + 90))
+
+        if _current == len(subtitle_list) - 1:
+            break
+
+    Global.timeline = subtitle_list
+    Global.gui.update_current_tl("时间轴提取完成!")  # 更新GUI
+    Global.gui.b_begin_tl.configure(state="normal")
     return True
 
 
-def img_similarity(img1, img2):
+def calculate_white(_binary):
     """
-    :param img1: 图片1
-    :param img2: 图片2
-    :return: 图片相似度
+    :param _binary: Mat矩阵
+    :return: 白色像素点占比
     """
-    try:
-        # 初始化ORB检测器
-        orb = cv2.ORB_create()
-        kp1, des1 = orb.detectAndCompute(img1, None)
-        kp2, des2 = orb.detectAndCompute(img2, None)
+    height, width = _binary.shape
+    return cv2.countNonZero(_binary) / (height * width)
 
-        # 提取并计算特征点
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING)
 
-        # knn筛选结果
-        matches = bf.knnMatch(des1, trainDescriptors=des2, k=2)
-
-        # 查看最大匹配点数目
-        good = [m for (m, n) in matches if m.distance < 0.75 * n.distance]
-        similary = len(good) / len(matches)
-        return similary
-
-    except:
-        return -1
+def similar_to_previous(_previous, _current):
+    """
+    :param _previous: 前一帧
+    :param _current: 当前帧
+    :return: 不同像素点数量
+    """
+    _image = cv2.absdiff(_previous, _current)
+    return cv2.countNonZero(_image) + 1
 
 
 def test_file():
-    _path = Config.get_value("video_path")
+    """
+    :return: 是否正常打开
+    """
+    _path = Global.config.get_value("video_path")
     _cv = cv2.VideoCapture(_path)  # 读入视频文件
     if _cv.isOpened():  # 判断是否正常打开
         _cv.release()
@@ -112,24 +125,38 @@ def test_file():
 
 
 def get_video_info():
-    _p = Config.get_value("video_path")
+    """
+    :return _w, _h, _fc, _fps: 宽, 高, 总帧数, 帧率(向上取整)
+    """
+    _p = Global.config.get_value("video_path")
     _cv = cv2.VideoCapture(_p)
     _w = int(_cv.get(cv2.CAP_PROP_FRAME_WIDTH))
     _h = int(_cv.get(cv2.CAP_PROP_FRAME_HEIGHT))
     _fc = int(_cv.get(cv2.CAP_PROP_FRAME_COUNT))
+    _fps = float(_cv.get(cv2.CAP_PROP_FPS))
     _cv.release()
-    return _w, _h, _fc
+    return _w, _h, _fc, _fps
 
 
 def get_frame(_index, _y_from, _y_to, _bth):
-    _path = Config.get_value("video_path")
-    _cv = cv2.VideoCapture(_path)
-    _cv.set(cv2.CAP_PROP_POS_FRAMES, _index)  # 设置要获取的帧号
-    _r, _frame = _cv.read()
-    _cv.release()
-    cropped = _frame[_y_from:_y_to, :]  # 截取指定区域
-    gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  # 灰度化
-    _, _binary = cv2.threshold(gray, _bth, 255, cv2.THRESH_BINARY_INV)  # 反转二值化
-    dim = (400, int(_binary.shape[0] * 400.0 / _binary.shape[1]))
-    resized = cv2.resize(_binary, dim, interpolation=cv2.INTER_AREA)
-    return cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+    """
+    :param _index: 帧索引
+    :param _y_from: 区域上限
+    :param _y_to: 区域下限
+    :param _bth: 二值化阈值
+    :return: RGB 通道图像
+    """
+    try:
+        _path = Global.config.get_value("video_path")
+        _cv = cv2.VideoCapture(_path)
+        _cv.set(cv2.CAP_PROP_POS_FRAMES, _index)  # 设置要获取的帧号
+        _r, _frame = _cv.read()
+        _cv.release()
+        cropped = _frame[_y_from:_y_to, :]  # 截取指定区域
+        gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  # 灰度化
+        _, _binary = cv2.threshold(gray, _bth, 255, cv2.THRESH_BINARY_INV)  # 反转二值化
+        _dim = (400, int(_binary.shape[0] * 400.0 / _binary.shape[1]))  # 缩放为 400 宽
+        _resize = cv2.resize(_binary, _dim, interpolation=cv2.INTER_AREA)
+        return cv2.cvtColor(_resize, cv2.COLOR_BGR2RGB)  # BGR 转 RGB
+    except cv2.error:
+        return -1
