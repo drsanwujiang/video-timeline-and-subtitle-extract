@@ -178,10 +178,14 @@ class Gui:
 
     def load_list(self):
         self.str_file_path.set(Global.config.get_value("video_dir"))
-        video_list = os.listdir(Global.config.get_value("video_dir"))
-        self.list_file_list.delete(0, "end")
-        for item in video_list:
-            self.list_file_list.insert("end", item)
+
+        try:
+            video_list = os.listdir(Global.config.get_value("video_dir"))
+            self.list_file_list.delete(0, "end")
+            for item in video_list:
+                self.list_file_list.insert("end", item)
+        except:
+            self.list_file_list.delete(0, "end")
 
     def load_video(self):
         _name = self.list_file_list.get(self.list_file_list.curselection())
