@@ -1,0 +1,22 @@
+{
+	"bd_api_key": "",
+	"bd_secret_key": "",
+	"tx_app_id": "",
+	"tx_app_key": "",
+	"bd_ocr_api": "general_basic",
+	"bd_ocr_lang": "CHN_ENG",
+	"bd_access_token_url": "https://aip.baidubce.com/oauth/2.0/token",
+	"bd_general_basic_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic",
+	"bd_general_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic",
+	"bd_accurate_basic_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic",
+	"bd_accurate_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate",
+	"bd_web_image_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/webimage",
+	"tx_general_ocr_url": "https://api.ai.qq.com/fcgi-bin/ocr/ocr_generalocr",
+	"jpg_quality": 40,
+	"binary_threshold": 250,
+	"ssim_threshold": 0.95,
+	"probability_bd": 0.8,
+	"video_dir": "/videos/",
+	"binary_tmp": "/binary_tmp/",
+	"output_dir": "/output/"
+}

@@ -1,51 +1,56 @@
 # -*- coding: UTF-8 -*-
 
 import sys
-import configparser
+import json
+import copy
 
 
 class Config:
     def __init__(self):
-        self.Maps = {}
-        self.set_default()
+        self.__config = None
+        self.__temp_config = None
+        self.__set_default()
 
-    def set_default(self):
-        config = configparser.ConfigParser()
-        config.read("config.ini", encoding="utf-8")
-        config_app_info = config["app_info"]
-        config_params = config["params"]
-        config_paths = config["paths"]
+    def __set_default(self):
+        with open("config.json", 'r') as _f:
+            self.__config = json.loads(_f.read())
+        self.__temp_config = copy.deepcopy(self.__config)
 
-        self.Maps["jd_app_key"] = config_app_info["jd_app_key"]
-        self.Maps["jd_secret_key"] = config_app_info["jd_secret_key"]
-
-        self.Maps["jpg_quality"] = int(config_params["jpg_quality"])
-        self.Maps["probability"] = float(config_params["probability"])
-        self.Maps["binary_threshold"] = int(config_params["binary_threshold"])
-
-        self.Maps["current_dir"] = sys.path[0]
-        self.Maps["video_dir"] = self.Maps["current_dir"] + config_paths["video_dir"]
-        self.Maps["binary_tmp"] = self.Maps["current_dir"] + config_paths["binary_tmp"]
-        self.Maps["output_dir"] = self.Maps["current_dir"] + config_paths["output_dir"]
+        self.__temp_config["current_dir"] = sys.path[0]
+        self.__temp_config["video_dir"] = self.__temp_config["current_dir"] + self.__config["video_dir"]
+        self.__temp_config["binary_tmp"] = self.__temp_config["current_dir"] + self.__config["binary_tmp"]
+        self.__temp_config["output_dir"] = self.__temp_config["current_dir"] + self.__config["output_dir"]
 
     def set_video_dir(self, _dir):
-        self.Maps["video_dir"] = _dir + "/"  # 指定视频源文件目录
+        self.__temp_config["video_dir"] = _dir + "/"  # 指定视频源文件目录
 
     def set_video_name(self, _name):
-        self.Maps["video_name"] = _name[:_name.rfind(".")]
-        self.Maps["video_suffix"] = _name[_name.rfind("."):]
-        self.Maps["video_path"] = self.Maps["video_dir"] + _name
+        self.__temp_config["video_name"] = _name[:_name.rfind(".")]
+        self.__temp_config["video_suffix"] = _name[_name.rfind("."):]
+        self.__temp_config["video_path"] = self.__temp_config["video_dir"] + _name
 
     def set_video_info(self, _w, _h, _fc, _fps):
-        self.Maps["video_width"] = _w
-        self.Maps["video_height"] = _h
-        self.Maps["frame_count"] = _fc
-        self.Maps["fps"] = _fps
+        self.__temp_config["video_width"] = _w
+        self.__temp_config["video_height"] = _h
+        self.__temp_config["frame_count"] = _fc
+        self.__temp_config["fps"] = _fps
 
     def set_params(self, _yf, _yt, _bth):
-        self.Maps["y_from"] = _yf
-        self.Maps["y_to"] = _yt
-        self.Maps["binary_threshold"] = _bth
+        self.__temp_config["y_from"] = _yf
+        self.__temp_config["y_to"] = _yt
+        self.__temp_config["binary_threshold"] = _bth
+
+    def set_api_info(self, _bak, _bsk, _boa, _bol, _tai, _tak):
+        self.__config["bd_api_key"] = self.__temp_config["bd_api_key"] = _bak
+        self.__config["bd_secret_key"] = self.__temp_config["bd_secret_key"] = _bsk
+        self.__config["bd_ocr_api"] = self.__temp_config["bd_ocr_api"] = _boa
+        self.__config["bd_ocr_lang"] = self.__temp_config["bd_ocr_lang"] = _bol
+        self.__config["tx_app_id"] = self.__temp_config["tx_app_id"] = _tai
+        self.__config["tx_app_key"] = self.__temp_config["tx_app_key"] = _tak
+
+    def save_json(self):
+        with open("config.json", 'w') as _f:
+            json.dump(self.__config, _f, indent="\t")
 
     def get_value(self, key):
-        return self.Maps[key]
+        return self.__temp_config[key]

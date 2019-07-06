@@ -1,70 +1,99 @@
 # 视频字幕及时间轴提取
 
+
 ## 能帮助你：
-
 ### 1、识别字幕的时间轴
-通过帧差法判断是否相同帧，进而由相同帧得出字幕时间轴
+通过帧差法判断是否相同帧, 进而由相同帧得出字幕时间轴
 
-计算时间轴对应帧的 SSIM ，合并相同的时间轴
+计算时间轴对应帧的 SSIM , 合并相同的时间轴
 
 ### 2、利用OCR识别字幕
-将指定字幕区域二值化得到只包含字幕的图片，之后利用OCR精准识别字幕
+将指定字幕区域二值化得到只包含字幕的图片, 之后利用 OCR 精准识别字幕
 
-目前使用京东OCR的接口，但效果不佳，所以近期将引入百度OCR
+目前使用百度 OCR , 腾讯 OCR 的接口
 
-下一阶段的目标是引入 tesseract-ocr
+有生之年的目标是引入 tesseract-ocr
+
 
 ## 如何使用
 ### 系统环境
-Windows 系统（Linux, macOS 未经测试, 但是理论上没有问题）
+Windows 系统 ( macOS 未经测试, 但是理论上没有问题)
 
-Python 3.x
+Python 3.x (建议 Python 3.7)
 
 ### 获取代码
-方法一：
+方法一: 
 
     git clone https://github.com/drsanwujiang/video-timeline-and-subtitle-extract.git
 
-方法二：右上角 - clone or download - download zip
+方法二: 右上角 -> clone or download -> download zip
 
 ### 安装模块
 在命令行执行
 
-    pip install opencv-python Pillow scikit-image scipy requests
-
-或在命令行中进入脚本所在目录，运行
+    pip install setuptools
+    pip install opencv-python Pillow scikit-image scipy requests ttkthemes
     
-    pip install -r requirements.txt
-    
-将会自动安装所依赖的模块，还可以在这里下载包括完整模块可直接运行的版本：
+将会自动安装所依赖的模块, 还可以在这里下载包含完整模块可以直接运行的版本:
 
-https://pan.drsanwujiang.com/index.php/s/EGFsELTokGssjHK
+https://pan.drsanwujiang.com/index.php/s/qcmFaq5mcaMZSjC
+
+### 申请OCR
+#### 百度OCR
+https://console.bce.baidu.com/ai/#/ai/ocr/overview/index
+
+在百度智能云创建文字识别应用, 在应用列表页面可以看到 API Key 和 Secret Key
+
+![百度智能云 应用列表页面](https://pan.drsanwujiang.com/index.php/s/yjbddNjLrkY6YEq/download "百度智能云 应用列表页面")
+
+百度OCR提供多个通用文字识别接口, 虽然官网显示不保证并发, 但是实测 QPS 至少能达到 3:
+
+|   接口   | 通用文字识别 | 通用文字识别(含位置信息版) | 通用文字识别(高精度版) | 通用文字识别(高精度含位置版) | 网络图片文字识别 |
+| :------: | :----------: | :------------------------: | :--------------------: | :--------------------------: | :---------------:|
+| 免费额度 |  50000次/日  |          500次/日          |        500次/日        |           50次/日            |     500次/日     |
+
+因为百度云是按行识别, 所以位置信息不是我们所必需的, 最基本的通用文字识别即可满足大部分需求
+
+其中, 通用文字识别和通用文字识别(高精度版)支持中英文混合, 英文, 葡萄牙语, 法语, 德语, 意大利语, 西班牙语, 俄语, 日语, 韩语 10 钟语言类型
+
+#### 腾讯OCR
+https://ai.qq.com/console/application/create-app
+
+在腾讯AI开放平台创建应用, 在应用信息页面可以看到 APPID 和 APPKEY
+
+![腾讯AI开放平台 应用列表页面](https://pan.drsanwujiang.com/index.php/s/KFXSLFJm5Z2M3wN/download "腾讯AI开放平台 应用列表页面")
+
+注意, 此接口**并不是**腾讯云(cloud.tencent.com)的文字识别 OCR 接口, 腾讯云的接口只有 1000次/月 的免费额度
+
+腾讯AI开放平台 OCR 叫做优图 OCR , 目前是完全免费的状态, 只有QPS的限制
+
+#### 选择哪个?
+实际测试来看, 两个 OCR 的表现都很不错, 腾讯 OCR 的精确度略微高于百度但也相差不大, 百度 OCR 的 QPS 能达到 3 但是字幕数量最多也就一千多条, 所以时间也不会相差太多
+
+有中文之外的需求, 直接选择百度OCR
+
+### 使用
+* 启动 index.pyw, 第一次启动会要求输入 OCR 的相关信息, 保存后就可以正常使用了!
+* 选择视频并调整参数
+    + 调整字幕区域使其只包含单行字幕(多行字幕理论可行但尚未测试)
+    + 调整二值化阈值, 尽可能使图片只包含字幕且字幕尽量黑
+    + 移动最下方的滚动条查看不通帧的效果
+* 开始提取时间轴并识别字幕
+    + 时间轴提取完成后会自动开始识别字幕, 字幕识别完毕会输出带时间轴的字幕文件, 后缀为.txt
+    + 时间轴提取完成但字幕识别出现错误, 可以直接重新识别字幕, 时间轴信息不会丢失
+* 在 output 文件夹查看输出结果
+
+#### 参数调整
+在"参数"页面调整的参数不会被保存到文件, 如果需要调整这些参数的默认值, 请直接修改 config.json 文件
+
+建议只根据需要修改 binary_threshold 二值化阈值的默认值
 
 
-### 申请京东OCR
-https://neuhub.jd.com/ai/api/ocr/general
+## 测试结果
+视频: https://pan.drsanwujiang.com/index.php/s/W32zp7mcjkJ9n6N
 
-在京东AI开放平台注册，创建通用文字识别应用得到 APP_KEY 、 SECRET_KEY
+时间轴-百度: https://pan.drsanwujiang.com/index.php/s/KcsigsXFZYCZnP4
 
-每天免费调用50000次，QPS是2。
+时间轴-腾讯: https://pan.drsanwujiang.com/index.php/s/nMDinAK8aqMgiAF
 
-### 配置
-打开 config.ini ，在 APP_KEY 、 SECRET_KEY 后填写自己的 APP_KEY 、 SECRET_KEY
-
-[params] 部分是默认参数
-
-### 参数说明：
-    jpg_quality = 40  # 图片输出质量, 0~100, 如果视频清晰度不高，可以适当调高
-    probability = 0.66  # OCR可信度下限, 0~1, 低于此可信度的识别结果将被忽略
-    binary_threshold = 250  # 二值化阈值, 150~255, 调整数值并尽量使结果只有文字
-
-### 执行
-1.创建 videos 文件夹，把视频文件放进去
-
-2.运行 index.pyw
-
-3.选择视频文件
-
-4.适当调整字幕区域和二值化阈值并预览效果，确保字幕清晰不泛白
-
-5.开始提取，结束后在 output 文件夹查看结果
+![时间轴及字幕](https://pan.drsanwujiang.com/index.php/s/AwoBPrnTDS54mZA/download "时间轴及字幕")
