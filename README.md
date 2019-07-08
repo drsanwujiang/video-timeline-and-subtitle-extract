@@ -1,4 +1,4 @@
-# 视频字幕及时间轴提取
+# 视频时间轴及字幕提取
 
 
 ## 能帮助你：
@@ -22,11 +22,9 @@ Windows 系统 ( macOS 未经测试, 但是理论上没有问题)
 Python 3.x (建议 Python 3.7)
 
 ### 获取代码
-方法一: 
+https://github.com/drsanwujiang/video-timeline-and-subtitle-extract/releases
 
-    git clone https://github.com/drsanwujiang/video-timeline-and-subtitle-extract.git
-
-方法二: 右上角 -> clone or download -> download zip
+下载 Zip 格式的 Source code 并解压
 
 ### 安装模块
 在命令行执行
@@ -40,11 +38,11 @@ https://pan.drsanwujiang.com/index.php/s/qcmFaq5mcaMZSjC
 
 ### 申请OCR
 #### 百度OCR
-https://console.bce.baidu.com/ai/#/ai/ocr/overview/index
+https://console.bce.baidu.com/ai/#/ai/ocr/app/create
 
 在百度智能云创建文字识别应用, 在应用列表页面可以看到 API Key 和 Secret Key
 
-![百度智能云 应用列表页面](https://pan.drsanwujiang.com/index.php/s/yjbddNjLrkY6YEq/download "百度智能云 应用列表页面")
+![百度智能云 应用列表页面](https://pan.drsanwujiang.com/index.php/s/smbWD5Xq6j6RQwE/download "百度智能云 应用列表页面")
 
 百度OCR提供多个通用文字识别接口, 虽然官网显示不保证并发, 但是实测 QPS 至少能达到 3:
 
@@ -61,7 +59,7 @@ https://ai.qq.com/console/application/create-app
 
 在腾讯AI开放平台创建应用, 在应用信息页面可以看到 APPID 和 APPKEY
 
-![腾讯AI开放平台 应用列表页面](https://pan.drsanwujiang.com/index.php/s/KFXSLFJm5Z2M3wN/download "腾讯AI开放平台 应用列表页面")
+![腾讯AI开放平台 应用列表页面](https://pan.drsanwujiang.com/index.php/s/ZnHrrr2oJNgaFNQ/download "腾讯AI开放平台 应用列表页面")
 
 注意, 此接口**并不是**腾讯云(cloud.tencent.com)的文字识别 OCR 接口, 腾讯云的接口只有 1000次/月 的免费额度
 
@@ -75,11 +73,11 @@ https://ai.qq.com/console/application/create-app
 ### 使用
 * 启动 index.pyw, 第一次启动会要求输入 OCR 的相关信息, 保存后就可以正常使用了!
 * 选择视频并调整参数
-    + 调整字幕区域使其只包含单行字幕(多行字幕理论可行但尚未测试)
+    + 调整字幕区域使其只包含字幕
     + 调整二值化阈值, 尽可能使图片只包含字幕且字幕尽量黑
-    + 移动最下方的滚动条查看不通帧的效果
+    + 移动最下方的滚动条查看不同帧的效果
 * 开始提取时间轴并识别字幕
-    + 时间轴提取完成后会自动开始识别字幕, 字幕识别完毕会输出带时间轴的字幕文件, 后缀为.txt
+    + 时间轴提取完成后会自动开始识别字幕, 字幕识别完成后会输出带时间轴的字幕文件, 后缀为.txt
     + 时间轴提取完成但字幕识别出现错误, 可以直接重新识别字幕, 时间轴信息不会丢失
 * 在 output 文件夹查看输出结果
 
@@ -90,10 +88,10 @@ https://ai.qq.com/console/application/create-app
 
 
 ## 测试结果
-视频: https://pan.drsanwujiang.com/index.php/s/W32zp7mcjkJ9n6N
+#### 百度OCR 腾讯OCR 识别结果对比:
 
-时间轴-百度: https://pan.drsanwujiang.com/index.php/s/KcsigsXFZYCZnP4
+![百度OCR 腾讯OCR 识别结果对比](https://pan.drsanwujiang.com/index.php/s/AwoBPrnTDS54mZA/download "百度OCR 腾讯OCR 识别结果对比")
 
-时间轴-腾讯: https://pan.drsanwujiang.com/index.php/s/nMDinAK8aqMgiAF
+### 百度OCR 双语字幕识别:
 
-![时间轴及字幕](https://pan.drsanwujiang.com/index.php/s/AwoBPrnTDS54mZA/download "时间轴及字幕")
+![百度OCR 双语字幕识别](https://pan.drsanwujiang.com/index.php/s/paWY5NfxtcZiHw6/download "百度OCR 双语字幕识别")
