@@ -1,4 +1,6 @@
 {
+	"version": "1.2.1",
+	"experience": 0,
 	"bd_api_key": "",
 	"bd_secret_key": "",
 	"tx_app_id": "",
@@ -12,6 +14,7 @@
 	"bd_accurate_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate",
 	"bd_web_image_url": "https://aip.baidubce.com/rest/2.0/ocr/v1/webimage",
 	"tx_general_ocr_url": "https://api.ai.qq.com/fcgi-bin/ocr/ocr_generalocr",
+	"experience_account_url": "https://tool.drsanwujiang.com/video-ocr/api/txocr",
 	"jpg_quality": 40,
 	"binary_threshold": 250,
 	"ssim_threshold": 0.95,

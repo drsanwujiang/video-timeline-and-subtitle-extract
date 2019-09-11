@@ -14,6 +14,24 @@ def get_file_content(file_path):
         return fp.read()
 
 
+def get_exp_account():
+    url = Global.config.get_value("experience_account_url")
+    t = int(time.time())
+    data = dict({
+        "token": hashlib.md5(str(t).encode("utf-8")).hexdigest().upper(),
+        "timestamp": t
+    })
+    try:
+        response = post_request(url, None, data).json()
+
+        if response["status"] == 0:
+            return True, response["app_id"], response["app_key"]
+        return False, None, None
+    except:
+        Global.gui.show_message_box("错误", "获取共享API过程中出现网络错误!\n请检查网络连接后重试")
+        return False, None, None
+
+
 def post_request(url, params, data):
     return requests.post(url, params=params, data=data)
 
@@ -127,9 +145,9 @@ class BdOcr:
 
 
 class TxOcr:
-    def __init__(self):
-        self.app_id = Global.config.get_value("tx_app_id")
-        self.app_key = Global.config.get_value("tx_app_key")
+    def __init__(self, _id, _key):
+        self.app_id = _id
+        self.app_key = _key
         self.general_ocr_url = Global.config.get_value("tx_general_ocr_url")
 
     def __del__(self):

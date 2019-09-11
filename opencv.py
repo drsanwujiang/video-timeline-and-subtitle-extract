@@ -166,7 +166,7 @@ class OpenCVUtils:
             # 线程中止
             self.running_flag = False
             return -99
-
+        '''
         if len(self.subtitle_list) < 2:
             Global.gui.update_current_tl("提取出的时间轴少于2条, 无法进行SSIM对比!")  # 更新GUI
         else:
@@ -175,7 +175,7 @@ class OpenCVUtils:
             if self.__ssim_contrast() == -99:
                 # 线程中止
                 return -99
-
+        '''
         Global.gui.update_progress_tl(100)
         self.running_flag = False
         Global.gui.update_current_tl("正在输出文件...")

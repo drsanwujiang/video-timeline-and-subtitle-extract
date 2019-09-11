@@ -40,13 +40,14 @@ class Config:
         self.__temp_config["y_to"] = _yt
         self.__temp_config["binary_threshold"] = _bth
 
-    def set_api_info(self, _bak, _bsk, _boa, _bol, _tai, _tak):
+    def set_api_info(self, _bak, _bsk, _boa, _bol, _tai, _tak, _exp):
         self.__config["bd_api_key"] = self.__temp_config["bd_api_key"] = _bak
         self.__config["bd_secret_key"] = self.__temp_config["bd_secret_key"] = _bsk
         self.__config["bd_ocr_api"] = self.__temp_config["bd_ocr_api"] = _boa
         self.__config["bd_ocr_lang"] = self.__temp_config["bd_ocr_lang"] = _bol
         self.__config["tx_app_id"] = self.__temp_config["tx_app_id"] = _tai
         self.__config["tx_app_key"] = self.__temp_config["tx_app_key"] = _tak
+        self.__config["experience"] = self.__temp_config["experience"] = _exp
 
     def save_json(self):
         with open("config.json", 'w') as _f:

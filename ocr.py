@@ -2,7 +2,7 @@
 
 import time
 import copy
-from ocrapi import BdOcr, TxOcr
+from ocrapi import BdOcr, TxOcr, get_exp_account
 from requests import RequestException
 from gl import Global
 
@@ -23,6 +23,8 @@ class OCRUtils:
         self.tx_skip_list = (16405, 16415, 16430, 16431, 16439)  # 需要忽略的返回码列表
         self.bd_ocr_api = None  # 百度 OCR 参数
         self.bd_ocr_lang = None
+        self.str_tx_app_id = None
+        self.str_tx_app_key = None
         self.ocr = None  # OCR对象
         self.cancel_flag = False  # 线程中止标志
 
@@ -48,38 +50,48 @@ class OCRUtils:
         current_subtitle = 0
 
         for subtitle in self.subtitle_list:
+            retry_times = 0
             current_subtitle += 1
             image_name = str(subtitle[0]).zfill(6)
 
             try:
                 result, status = self.__get_ocr_bd(image_name)
 
-                while status == -1:  # QPS限制，重试
-                    self.__update_gui("%s 触发QPS限制, 重试..." % image_name,
-                                      int(current_subtitle * 100 / self.subtitle_count))
-                    time.sleep(0.1)  # 线程暂停
+                while True:
+                    if status == -1:  # QPS限制，重试
+                        self.__update_gui("%s 触发QPS限制, 重试..." % image_name,
+                                          int(current_subtitle * 100 / self.subtitle_count))
+                        time.sleep(0.1)  # 线程暂停
+                    elif status == -3:  # 需要重新请求的错误
+                        self.__update_gui("%s 识别错误, 正在重试..." % image_name,
+                                          int(current_subtitle * 100 / self.subtitle_count))
+                        time.sleep(0.1)  # 线程暂停
+                    elif status == -5:  # 预料之外的错误
+                        retry_times += 1
+                        self.__update_gui("返回预料之外的错误码! 正在第 %d 次重试……"
+                                          % retry_times, int(current_subtitle * 100 / self.subtitle_count))
+                        if retry_times == 10:
+                            return -3, [image_name, result[0], result[1]]
+                        time.sleep(0.5)  # 线程暂停
+                    else:
+                        break
+
                     result, status = self.__get_ocr_bd(image_name)
 
-                while status == -3:  # 需要重新请求的错误
-                    self.__update_gui("%s 识别错误, 正在重试..." % image_name,
+                if status == -2:  # 请求次数耗尽
+                    return -12, None
+                elif status == -4:  # 需要跳过的错误
+                    self.__update_gui("%s 识别错误, 跳过..." % image_name,
                                       int(current_subtitle * 100 / self.subtitle_count))
-                    result, status = self.__get_ocr_bd(image_name)
+                    subtitle[3] = "( 跳过, OCR识别错误 )"
+                    skip_images.append(image_name)
+                    continue
             except RequestException as e:
                 return -1, [image_name, str(e)]
 
-            if status == -2:  # 请求次数耗尽
-                return -12, None
-            elif status == -4:  # 需要跳过的错误
-                self.__update_gui("%s 识别错误, 跳过..." % image_name,
-                                  int(current_subtitle * 100 / self.subtitle_count))
-                subtitle[3] = "跳过 (OCR识别错误)"
-                skip_images.append(image_name)
-                continue
-            elif status == -5:  # 预料之外的错误
-                return -3, [image_name, result[0], result[1]]
-
             words_list = [item["words"] for item in result if item["probability"]["average"] > self.probability_bd]
             words = " ".join(words_list)
+            words = words if words.replace(' ', '') != "" else "( 未能识别出有效字幕 )"
             subtitle[3] = words
 
             self.__update_gui("%s 完成" % image_name, int(current_subtitle * 100 / self.subtitle_count))
@@ -89,7 +101,7 @@ class OCRUtils:
                 return -99, None
 
         # 写入文件
-        output = open(self.output_dir + self.video_name + "_BD.txt", mode="w")
+        output = open(self.output_dir + self.video_name + "_BD.srt", mode="w")
         for i in range(len(self.subtitle_list) - 1):
             output.write("%d\n%s --> %s\n%s\n\n" % (i + 1,
                                                     self.__frame2time(self.subtitle_list[i][0], self.fps),
@@ -100,37 +112,50 @@ class OCRUtils:
 
     def __get_subtitle_tx(self):
         self.__update_gui("初始化腾讯OCR...", 0)
-        self.ocr = TxOcr()
+        self.ocr = TxOcr(self.str_tx_app_id, self.str_tx_app_key)
         skip_images = []
 
         current_subtitle = 0
 
         for subtitle in self.subtitle_list:
+            retry_times = 0
             current_subtitle += 1
             image_name = str(subtitle[0]).zfill(6)
 
             try:
                 result, status = self.__get_ocr_tx(image_name)
 
-                while status == -1:  # QPS限制，重试
-                    self.__update_gui("%s 触发QPS限制, 重试..."
-                                      % image_name, int(current_subtitle * 100 / self.subtitle_count))
-                    time.sleep(0.1)  # 线程暂停
+                while True:
+                    if status == -1:  # QPS限制，重试
+                        self.__update_gui("%s 触发QPS限制, 重试..."
+                                          % image_name, int(current_subtitle * 100 / self.subtitle_count))
+                        time.sleep(0.1)  # 线程暂停
+                    elif status == -5:
+                        retry_times += 1
+                        self.__update_gui("返回预料之外的错误码! 正在第 %d 次重试……"
+                                          % retry_times, int(current_subtitle * 100 / self.subtitle_count))
+                        if retry_times == 10:
+                            return -3, [image_name, result[0], result[1]]
+                        time.sleep(0.5)  # 线程暂停
+                    else:
+                        break
+
                     result, status = self.__get_ocr_tx(image_name)
+
+                if status == -3:  # 接口鉴权失败
+                    return -21, None
+                elif status == -4:  # 需要跳过的错误
+                    self.__update_gui("%s 识别错误, 跳过..."
+                                      % image_name, int(current_subtitle * 100 / self.subtitle_count))
+                    subtitle[3] = "( 跳过, OCR识别错误 )"
+                    skip_images.append(image_name)
+                    continue
             except RequestException as e:
                 return -1, [image_name, str(e)]
 
-            if status == -4:  # 需要跳过的错误
-                self.__update_gui("%s 识别错误, 跳过..."
-                                  % image_name, int(current_subtitle * 100 / self.subtitle_count))
-                subtitle[3] = "跳过 (OCR识别错误)"
-                skip_images.append(image_name)
-                continue
-            elif status == -5:  # 预料之外的错误
-                return -3, [image_name, result[0], result[1]]
-
             words_list = [item["itemstring"] for item in result]
             words = " ".join(words_list)
+            words = words if words.replace(' ', '') != "" else "( 未能识别出有效字幕 )"
             subtitle[3] = words
 
             self.__update_gui("%s 完成" % image_name, int(current_subtitle * 100 / self.subtitle_count))
@@ -140,7 +165,7 @@ class OCRUtils:
                 return -99, None
 
         # 写入文件
-        output = open(self.output_dir + self.video_name + "_TX.txt", mode="w")
+        output = open(self.output_dir + self.video_name + "_TX.srt", mode="w")
         for i in range(len(self.subtitle_list) - 1):
             output.write("%d\n%s --> %s\n%s\n\n" % (i + 1,
                                                     self.__frame2time(self.subtitle_list[i][0], self.fps),
@@ -176,10 +201,24 @@ class OCRUtils:
             return response["data"]["item_list"], 0  # OK
         elif code == 9:
             return response["msg"], -1  # 达到OPS上限
+        elif code == 16389:
+            return response["msg"], -3  # 接口鉴权失败
         elif code in self.tx_skip_list:
             return response["msg"], -4  # 需要跳过的错误
         else:
             return [response["ret"], response["msg"]], -5  # 预料之外的错误
+
+    def check_exp(self):
+        if Global.config.get_value("experience") == 0:
+            self.str_tx_app_id = Global.config.get_value("tx_app_id")
+            self.str_tx_app_key = Global.config.get_value("tx_app_key")
+            return True
+
+        _status, self.str_tx_app_id, self.str_tx_app_key = get_exp_account()
+
+        if not _status:
+            return False
+        return True
 
     @staticmethod
     def __update_gui(_message, _progress):
@@ -195,6 +234,14 @@ class OCRUtils:
         return "%02d:%02d:%02d,%03d" % (_h, _m, _s, _f)
 
     def run_recognize(self, ocr_engine):
+        if not self.check_exp():
+            return_msg = [
+                "获取共享API失败!",
+                "获取共享API失败! 请重试或使用自己的API",
+                "获取共享API失败! 请重试或使用自己的API"
+            ]
+            return -1, return_msg
+
         self.cancel_flag = False
         self.__get_params()
         get_subtitle = self.__get_subtitle_bd  # 默认使用百度OCR
@@ -230,9 +277,9 @@ class OCRUtils:
             return -1, return_msg
         elif result == -3:
             return_msg = [
-                "%s 失败! OCR返回了预料之外的错误码!" % message[0],
-                "失败! OCR返回了预料之外的错误码: %s" % message[1],
-                "失败! OCR返回了预料之外的错误码!\n\n错误码: %s\n错误信息: %s\n\n请查阅OCR的接口文档, 或将详细信息告知作者!"
+                "%s 失败! OCR多次返回预料之外的错误码!" % message[0],
+                "失败! OCR多次返回预料之外的错误码: %s" % message[1],
+                "失败! OCR多次返回预料之外的错误码!\n\n错误码: %s\n错误信息: %s\n\n请过几分钟重试, 并将详细信息告知作者!"
                 % (message[1], message[2])
             ]
             return -1, return_msg
@@ -248,6 +295,13 @@ class OCRUtils:
                 "请求次数耗尽!",
                 "调用的OCR接口请求次数耗尽!",
                 "调用的OCR接口请求次数耗尽! 请保持百度云余额充足或切换其他的OCR接口!"
+            ]
+            return -1, return_msg
+        elif result == -21:
+            return_msg = [
+                "接口鉴权失败!",
+                "接口鉴权失败!",
+                "接口鉴权失败! 请查阅说明文档, 检查腾讯OCR是否已接入通用OCR能力!"
             ]
             return -1, return_msg
         elif result == -99:
