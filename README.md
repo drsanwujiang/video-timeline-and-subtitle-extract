@@ -34,7 +34,7 @@ Python 3.x (建议 Python 3.7)
 将会自动安装所依赖的模块
 
 #### 2.下载包含完整模块的压缩包 
-还可以 [点击这里](https://starcloud.cloud/s/E5Wk454FnMKDQF4)
+还可以 [点击这里](https://starcloud.cloud/s/H4JKSsxiD58AaHf)
 下载包含完整模块的压缩包，可以无需安装模块直接运行
 
 ### 申请OCR
@@ -42,7 +42,7 @@ Python 3.x (建议 Python 3.7)
 [点击这里](https://console.bce.baidu.com/ai/#/ai/ocr/app/create)
 在百度智能云创建文字识别应用, 在应用列表页面可以看到 API Key 和 Secret Key
 
-![百度智能云 应用列表页面](https://starcloud.cloud/s/mEEGKoE6f2jHpKz/download "百度智能云 应用列表页面")
+![百度智能云 应用列表页面](https://starcloud.cloud/s/NTJ5MkgNw6Wdpad/download "百度智能云 应用列表页面")
 
 百度OCR提供多个通用文字识别接口, 虽然官网显示不保证并发, 但是实测 QPS 至少能达到 3:
 
@@ -58,11 +58,11 @@ Python 3.x (建议 Python 3.7)
 [点击这里](https://ai.qq.com/console/application/create-app)
 在腾讯AI开放平台创建应用, 在应用信息页面可以看到 APPID 和 APPKEY
 
-![腾讯AI开放平台 应用列表页面](https://starcloud.cloud/s/3rKDnt7tGD8sWNA/download "腾讯AI开放平台 应用列表页面")
+![腾讯AI开放平台 应用列表页面](https://starcloud.cloud/s/ad9S3ZKY8NEtF5c/download "腾讯AI开放平台 应用列表页面")
 
 之后点击 **能力库** -> **OCR** -> **通用OCR** 接入能力, **否则** 无法使用OCR
 
-![腾讯AI开放平台 接入能力页面](https://starcloud.cloud/s/ocCkxanfMeWi8M3/download "腾讯AI开放平台 接入能力页面")
+![腾讯AI开放平台 接入能力页面](https://starcloud.cloud/s/zHRnaPyTinWgsbk/download "腾讯AI开放平台 接入能力页面")
 
 注意, 此接口**并不是**腾讯云(cloud.tencent.com)的文字识别 OCR 接口, 腾讯云的接口只有 1000次/月 的免费额度
 
@@ -94,4 +94,4 @@ Python 3.x (建议 Python 3.7)
 ## 测试结果
 #### 百度OCR 腾讯OCR 识别结果对比:
 
-![百度OCR 腾讯OCR 识别结果对比](https://starcloud.cloud/s/FJTNNwG9GbyTYQE/download "百度OCR 腾讯OCR 识别结果对比")
+![百度OCR 腾讯OCR 识别结果对比](https://starcloud.cloud/s/x9W2oaLfsHTTW8B/download "百度OCR 腾讯OCR 识别结果对比")
