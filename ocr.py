@@ -101,7 +101,7 @@ class OCRUtils:
                 return -99, None
 
         # 写入文件
-        output = open(self.output_dir + self.video_name + "_BD.srt", mode="w")
+        output = open(self.output_dir + self.video_name + "_BD.srt", mode="w", encoding="utf-8")
         for i in range(len(self.subtitle_list) - 1):
             output.write("%d\n%s --> %s\n%s\n\n" % (i + 1,
                                                     self.__frame2time(self.subtitle_list[i][0], self.fps),
