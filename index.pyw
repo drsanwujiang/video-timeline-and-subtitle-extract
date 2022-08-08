@@ -1,3 +1,4 @@
+#! python3
 # -*- coding: UTF-8 -*-
 
 import sys
@@ -6,7 +7,7 @@ from tkinter import messagebox
 from ttkthemes import ThemedTk
 from gl import Global
 from config import Config
-from opencv import OpenCVUtils
+from cv import OpenCVUtils
 from ocr import OCRUtils
 from gui import MainWindow
 

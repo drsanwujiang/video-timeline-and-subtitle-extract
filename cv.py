@@ -3,7 +3,7 @@
 import cv2
 import copy
 import threading
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 from gl import Global
 
 
@@ -111,7 +111,7 @@ class OpenCVUtils:
         self.current_ssim = 0
 
         while True:
-            _ssim = compare_ssim(self.subtitle_list[self.current_ssim][2], self.subtitle_list[self.current_ssim + 1][2])
+            _ssim = structural_similarity(self.subtitle_list[self.current_ssim][2], self.subtitle_list[self.current_ssim + 1][2])
 
             if _ssim > self.ssim_threshold and \
                     self.subtitle_list[self.current_ssim + 1][0] - self.subtitle_list[self.current_ssim][1] <= 5:

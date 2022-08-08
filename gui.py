@@ -6,7 +6,7 @@ import shutil
 from threading import Thread
 from tkinter import ttk, filedialog, StringVar, IntVar, messagebox, Toplevel
 from PIL import Image, ImageTk
-from opencv import test_file, get_video_info, get_frame
+from cv import test_file, get_video_info, get_frame
 from gl import Global
 
 
@@ -179,7 +179,7 @@ class MainWindow:
         fr_engine_st.pack(fill="both", expand=True, padx=10)
         ttk.Radiobutton(fr_engine_st, text="百度OCR", variable=self.int_ocr_engine, value=0) \
             .pack(fill="x", expand=True, side="left")
-        ttk.Radiobutton(fr_engine_st, text="腾讯OCR", variable=self.int_ocr_engine, value=1) \
+        ttk.Radiobutton(fr_engine_st, text="腾讯OCR", variable=self.int_ocr_engine, value=1, state="disabled") \
             .pack(fill="x", expand=True, side="left")
 
         fr_current_st = ttk.Frame(lf_subtitle)
@@ -217,9 +217,9 @@ class MainWindow:
         if (Global.config.get_value("bd_api_key") == "" or Global.config.get_value("bd_secret_key") == "") and \
                 (Global.config.get_value("tx_app_id") == "" or Global.config.get_value("tx_app_key") == "") and \
                 Global.config.get_value("experience") == 0:
-            self.show_message_window("欢迎", "欢迎使用\n视频字幕及时间轴提取\n\n请先填写你的API信息, 或选择使用共享API\n\n" +
+            self.show_message_window("欢迎", "欢迎使用\n视频字幕及时间轴提取\n\n使用前请先填写OCR API信息, 否则后续字幕识别功能将无法使用\n\n" +
                                      "更多帮助请访问Github", 400, 200, True, True, True)
-            self.show_ocr_settings()
+            # self.show_ocr_settings()
 
     def show_ocr_settings(self):
         window = Toplevel(self.master)  # 子窗口
@@ -235,13 +235,17 @@ class MainWindow:
 
     # 异步读取视频文件
     def __async_load_video(self):
+        if not Global.config.get_value("bd_api_key") or not Global.config.get_value("bd_secret_key"):
+            self.show_message_box("警告", "OCR API相关参数未设置，字幕识别功能将无法使用", "warning")
+            self.b_load.configure(state="normal", text="下一步")
+
         def load_video():
             self.b_load.configure(state="disabled", text="读取中...")
             Global.config.set_video_name(self.str_file_name.get())
 
             if not test_file():
                 self.show_message_box("错误", "文件打开失败，请检查格式或编码", "error")
-                self.b_load.configure(state="normal", text="读取")
+                self.b_load.configure(state="normal", text="下一步")
                 return
             elif Global.config.get_value("video_suffix") not in Global.Types:
                 self.show_message_box("警告", "文件格式并非常见视频格式，可能导致程序不稳定", "warning")
@@ -250,7 +254,7 @@ class MainWindow:
             self.tab_control.tab(1, state="normal")  # 启用标签页
             self.tab_control.tab(2, state="normal")
             self.tab_control.select(1)  # 进入参数标签页
-            self.b_load.configure(state="normal", text="读取")
+            self.b_load.configure(state="normal", text="下一步")
 
         def load_settings():
             # 加载指定文件的信息以及默认参数
@@ -335,23 +339,24 @@ class MainWindow:
             self.b_cancel_tl.configure(state="normal")  # 启用取消按钮
             _result = Global.opencv_utils.run_extract()
 
+            self.b_begin_tl.configure(state="normal")
+            self.b_cancel_tl.configure(state="disabled")
+
             if _result == 0:
                 # 正常结束
+                self.b_begin_st.configure(state="normal")
+                self.b_cancel_st.configure(state="disabled")
                 self.__async_start_recognize()
             elif _result == -1:
                 # 视频打开失败
                 self.update_current_tl("")
                 self.update_progress_tl(0)
                 self.update_errmsg_tl("视频打开失败!")
-                self.b_begin_tl.configure(state="normal")
-                self.b_cancel_tl.configure(state="disabled")
             elif _result == -99:
                 # 线程中止
                 self.update_current_tl("")
                 self.update_progress_tl(0)
                 self.update_errmsg_tl("已取消!")
-                self.b_begin_tl.configure(state="normal")
-                self.b_cancel_tl.configure(state="disabled")
 
         # 开启子线程
         task_start_extract = ChildThreading(start_extract)
@@ -364,6 +369,7 @@ class MainWindow:
 
     # 异步开始字幕识别
     def __async_start_recognize(self, _e=None):
+        """
         def check_exp():
             if Global.config.get_value("experience") == 1 and self.int_ocr_engine.get() == 0:
                 self.int_ocr_engine.set(1)
@@ -383,6 +389,11 @@ class MainWindow:
                     window = self.show_message_window("提示", "检测到腾讯OCR API信息为空, 已自动切换至百度OCR", 400, 150,
                                                       transient=True)
                     self.master.after(3000, window.destroy)
+        """
+
+        if not Global.config.get_value("bd_api_key") or not Global.config.get_value("bd_secret_key"):
+            self.show_message_box("警告", "OCR API相关参数未设置，无法进行字幕识别", "warning")
+            return
 
         def start_recognize():
             self.update_current_st("")
@@ -392,8 +403,8 @@ class MainWindow:
             self.b_cancel_tl.configure(state="disabled")
             self.b_begin_st.configure(state="disabled")
             self.b_cancel_st.configure(state="normal")
-            check_exp()
-            check_empty_api_info()
+            # check_exp()
+            # check_empty_api_info()
             _result, _message = Global.ocr_utils.run_recognize(self.int_ocr_engine.get())
 
             if _result == 0:
@@ -470,20 +481,21 @@ class OCRSettings:
         self.master.title("OCR选项")
         self.master.iconbitmap("favico.ico")
         self.master.resizable(False, False)
-        self.master.protocol("WM_DELETE_WINDOW", self.__save_config)  # 接管关闭事件
+        # self.master.protocol("WM_DELETE_WINDOW", self.__save_config)  # 接管关闭事件
 
         self.lf_baidu = None
         self.lf_tencent = None
         self.list_api_list = None  # 百度 API 列表
         self.list_language_list = None  # 百度识别语言列表
 
-        self.experience = IntVar(value=Global.config.get_value("experience"))
         self.str_bd_api_key = StringVar(value=Global.config.get_value("bd_api_key"))  # 百度 API Key
         self.str_bd_secret_key = StringVar(value=Global.config.get_value("bd_secret_key"))  # 百度 Secret Key
         self.str_bd_ocr_api = StringVar(value="")  # 百度 OCR API
         self.str_bd_ocr_lang = StringVar(value="")  # 百度 字幕语言
         self.str_tx_app_id = StringVar(value=Global.config.get_value("tx_app_id"))  # 腾讯 AppID
         self.str_tx_app_key = StringVar(value=Global.config.get_value("tx_app_key"))  # 腾讯 AppKey
+        # self.experience = IntVar(value=Global.config.get_value("experience"))
+        self.experience = IntVar(value=0)
 
         self.__init_widgets()
         self.__load_list()
@@ -510,18 +522,20 @@ class OCRSettings:
         self.lf_tencent = ttk.LabelFrame(self.master, text=" 腾讯OCR ")
         self.lf_tencent.pack(fill="both", expand=True, padx=10, pady=5)
         self.lf_tencent.grid_columnconfigure(1, weight=1)
-        ttk.Label(self.lf_tencent, text="AppID: ").grid(row=0, column=0, padx=10, pady=10, sticky="e")
-        ttk.Entry(self.lf_tencent, textvariable=self.str_tx_app_id).grid(row=0, column=1, padx=10, sticky="ew")
-        ttk.Label(self.lf_tencent, text="AppKey: ").grid(row=1, column=0, padx=10, pady=10)
-        ttk.Entry(self.lf_tencent, textvariable=self.str_tx_app_key).grid(row=1, column=1, padx=10, sticky="ew")
+        ttk.Label(self.lf_tencent, text="AppID: ", state="disabled").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+        ttk.Entry(self.lf_tencent, textvariable=self.str_tx_app_id, state="disabled").grid(row=0, column=1, padx=10, sticky="ew")
+        ttk.Label(self.lf_tencent, text="AppKey: ", state="disabled").grid(row=1, column=0, padx=10, pady=10)
+        ttk.Entry(self.lf_tencent, textvariable=self.str_tx_app_key, state="disabled").grid(row=1, column=1, padx=10, sticky="ew")
 
+        """
         # 使用共享API
         lf_exp = ttk.LabelFrame(self.master, text=" 使用共享API（仅供体验使用） ")
         lf_exp.pack(fill="x", padx=10, pady=5)
         ttk.Checkbutton(lf_exp, text="使用腾讯OCR共享API", variable=self.experience, onvalue=1, offvalue=0,
-                        command=self.__apply_exp).pack(side="top", fill="x", padx=10)
-        ttk.Label(lf_exp, text="仅供体验使用，不保证稳定性且QPS为1，建议及时更换为自己的API", foreground="red")\
+                        command=self.__apply_exp, state="disabled").pack(side="top", fill="x", padx=10)
+        ttk.Label(lf_exp, text="仅供体验使用，不保证稳定性且QPS为1，建议及时更换为自己的API", foreground="red", state="disabled")\
             .pack(side="top", fill="x", padx=10)
+        """
 
         # 保存和说明
         fr_save = ttk.Frame(self.master)
@@ -537,6 +551,7 @@ class OCRSettings:
                                  [Global.config.get_value("bd_ocr_lang")])
 
     def __apply_exp(self):
+        """
         if self.experience.get() == 0:
             for child in self.lf_baidu.winfo_children() + self.lf_tencent.winfo_children():
                 child.configure(state="normal")
@@ -546,12 +561,12 @@ class OCRSettings:
         for child in self.lf_baidu.winfo_children() + self.lf_tencent.winfo_children():
             child.configure(state="disabled")
             child.configure(state="disabled")
+        """
 
     def __save_config(self):
         if (self.str_bd_api_key.get() == "" or self.str_bd_secret_key.get() == "") and \
                 (self.str_tx_app_id.get() == "" or self.str_tx_app_key.get() == "") and self.experience.get() == 0:
-            self.show_message_box("欢迎", "请至少填写一个OCR引擎的相关信息, 或选择使用共享API!", "warning")
-            return
+            self.show_message_box("警告", "请填写OCR引擎的相关信息, 否则将无法进行字幕识别", "warning")
 
         Global.config.set_api_info(self.str_bd_api_key.get(), self.str_bd_secret_key.get(),
                                    Global.BD_API[self.str_bd_ocr_api.get()], Global.BD_Lang[self.str_bd_ocr_lang.get()],
